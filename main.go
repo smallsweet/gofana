@@ -18,6 +18,7 @@ import (
 	"github.com/stretchr/objx"
 	"github.com/stretchr/signature"
 
+	"crypto/tls"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -49,6 +50,7 @@ var (
 	googleClientID, googleClientSecret string
 	sessionSecret                      string
 	version                            bool
+	checkCertificate                   bool
 )
 
 func addCorsHeaders(w http.ResponseWriter) {
@@ -337,7 +339,10 @@ func proxy(target string, w http.ResponseWriter, r *http.Request) {
 	copyHeader(r.Header, &rr.Header)
 
 	// Create a client and query the target
-	var transport http.Transport
+	//var transport http.Transport
+	transport := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: checkCertificate},
+	}
 	resp, err := transport.RoundTrip(rr)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -387,6 +392,7 @@ func main() {
 	flag.StringVar(&googleClientSecret, "google-client-secret", "", "Google Oauth2 Client Sercret")
 
 	flag.BoolVar(&version, "version", false, "show version")
+	flag.BoolVar(&checkCertificate, "no-check-certificate", false, "don't check server certificate")
 	flag.Parse()
 
 	if version {
